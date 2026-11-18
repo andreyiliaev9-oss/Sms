@@ -1,0 +1,116 @@
+groups:
+  - name: panel
+    interval: 15s
+    rules:
+      - alert: RegistryLow
+        expr: (panel_registry_live_total / panel_registry_total) < 0.2
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "реестр просел"
+          description: "живых {{ $value | humanizePercentage }} от всего пула"
+
+      - alert: EndpointLongBan
+        expr: panel_endpoint_banned == 1
+        for: 10m
+        labels:
+          severity: drop
+        annotations:
+          summary: "эндпоинт в бане > 10 мин"
+          description: "{{ $labels.name }} — на выброс"
+
+      - alert: FloodRate
+        expr: rate(panel_flood_total[1m]) > 5
+        for: 30s
+        labels:
+          severity: stop
+        annotations:
+          summary: "флуд-рейт высокий"
+          description: "{{ $value | humanize }}/s — движок стоп"
+
+      - alert: RpsFloor
+        expr: panel_rps < 1
+        for: 2m
+        labels:
+          severity: warn
+        annotations:
+          summary: "rps на полу"
+          description: "профиль {{ $labels.profile }} застрял"
+
+      - alert: NoSent
+        expr: increase(panel_sent_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "нет отправок 5 минут"
+          description: "профиль {{ $labels.profile }} молчит"
+
+      - alert: PurgePending
+        expr: count(panel_endpoint_banned == 1) > 0
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: "есть помеченные на выброс"
+          description: "запусти /purge для очистки пула"
+
+      - alert: DiskFilling
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/rootfs"}
+           / node_filesystem_size_bytes{mountpoint="/rootfs"}) < 0.15
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "диск хоста почти полон"
+          description: "свободно {{ $value | humanizePercentage }}"
+
+      - alert: DiskBackups
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/rootfs"}
+           / node_filesystem_size_bytes{mountpoint="/rootfs"}) < 0.10
+        for: 1m
+        labels:
+          severity: stop
+        annotations:
+          summary: "диск < 10%"
+          description: "чисти backups, движок стоп"
+
+      - alert: HighCpu
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warn
+        annotations:
+          summary: "CPU > 85%"
+          description: "{{ $value | humanize }}% — движок жрёт"
+
+      - alert: MemoryLow
+        expr: |
+          (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "RAM < 10%"
+          description: "свободно {{ $value | humanizePercentage }}"
+
+      - alert: ContainerOOM
+        expr: increase(container_oom_events_total{name!=""}[5m]) > 0
+        labels:
+          severity: page
+        annotations:
+          summary: "OOM-kill контейнера"
+          description: "{{ $labels.name }} убит по памяти"
+
+      - alert: ContainerRestart
+        expr: increase(container_start_time_seconds{name!=""}[10m]) > 0
+        for: 1m
+        labels:
+          severity: warn
+        annotations:
+          summary: "контейнер перезапустился"
+          description: "{{ $labels.name }} — рестарт за 10 мин"
