@@ -1,0 +1,9 @@
+.env
+*.pyc
+__pycache__/
+pool_healthy.json
+dropped.json
+proxies.txt
+backups/
+*.tar.gz
+.venv/
