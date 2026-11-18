@@ -1,0 +1,25 @@
+route:
+  receiver: bot
+  group_by: [alertname, severity]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 30m
+  routes:
+    - match:
+        severity: page
+      receiver: bot
+      repeat_interval: 10m
+    - match:
+        severity: drop
+      receiver: bot
+      repeat_interval: 1h
+    - match:
+        severity: stop
+      receiver: bot
+      repeat_interval: 5m
+
+receivers:
+  - name: bot
+    webhook_configs:
+      - url: "http://api:8080/alert"
+        send_resolved: true
